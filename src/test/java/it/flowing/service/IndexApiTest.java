@@ -7,6 +7,7 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,11 @@ public class IndexApiTest {
         client = connection.open(HOST, PORT);
     }
 
+    @After
+    public void terminate() throws IOException {
+        connection.close(client);
+    }
+
     @Deployment
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class)
@@ -44,27 +50,26 @@ public class IndexApiTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void IndexRequestShouldThrowErrorIfNullIndexProvided() throws IOException {
+    public void CreateDocumentShouldThrowErrorIfNullIndexProvided() throws IOException {
         client.createDocument(null, null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void IndexRequestShouldThrowErrorIfEmptyIndexProvided() throws IOException {
+    public void CreateDocumentShouldThrowErrorIfEmptyIndexProvided() throws IOException {
         client.createDocument("", null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void IndexRequestShouldThrowErrorIfNullMetadataProvided() throws IOException {
+    public void CreateDocumentShouldThrowErrorIfNullMetadataProvided() throws IOException {
         client.createDocument("dummyIndex", null, Optional.empty());
     }
 
     @Test
-    public void IndexRequestShouldReturnAValidIndexRequestObject() {
+    public void CreateDocumentShouldReturnAValidIndexRequestObject() {
         try {
             Map<String, Object> metadata = getDummyDataForCreateDocument();
             CreateDocumentResponse response = null;
             response = client.createDocument("javatest", metadata, Optional.empty());
-            connection.close(client);
 
             assertNotNull(response);
             assertEquals(RestStatus.CREATED, response.getStatus());
@@ -74,13 +79,12 @@ public class IndexApiTest {
     }
 
     @Test
-    public void IndexRequestShouldReturnTheIdProvided() {
+    public void CreateDocumentShouldReturnTheIdProvided() {
         try {
             Map<String, Object> metadata = getDummyDataForCreateDocument();
             CreateDocumentResponse response = null;
             String uuid = UUID.randomUUID().toString();
             response = client.createDocument("javatest", metadata, Optional.of(uuid));
-            connection.close(client);
 
             assertNotNull(response);
             assertEquals(RestStatus.CREATED, response.getStatus());
