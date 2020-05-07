@@ -64,6 +64,7 @@ public class IndexApiTest {
             Map<String, Object> metadata = getDummyDataForCreateDocument();
             CreateDocumentResponse response = null;
             response = client.createDocument("javatest", metadata, Optional.empty());
+            connection.close(client);
 
             assertNotNull(response);
             assertEquals(RestStatus.CREATED, response.getStatus());
@@ -79,6 +80,7 @@ public class IndexApiTest {
             CreateDocumentResponse response = null;
             String uuid = UUID.randomUUID().toString();
             response = client.createDocument("javatest", metadata, Optional.of(uuid));
+            connection.close(client);
 
             assertNotNull(response);
             assertEquals(RestStatus.CREATED, response.getStatus());
