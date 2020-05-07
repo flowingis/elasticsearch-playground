@@ -1,9 +1,5 @@
 package it.flowing.service;
 
-import org.apache.http.HttpHost;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
-
 import javax.enterprise.context.ApplicationScoped;
 import java.io.IOException;
 
@@ -13,11 +9,11 @@ public class Connection {
     private static final String PROTOCOL = "http";
     private static final int DEFAULT_PORT = 9200;
 
-    public ElasticSearchClient open(String host, int port) throws IllegalArgumentException {
+    public Client open(String host, int port) throws IllegalArgumentException {
         checkHost(host);
         port = checkPort(port);
 
-        return ElasticSearchClient.newClient(host, port);
+        return Client.newClient(host, port);
     }
 
     private int checkPort(int port) {
@@ -33,7 +29,7 @@ public class Connection {
         }
     }
 
-    public void close(ElasticSearchClient client) throws IOException {
+    public void close(Client client) throws IOException {
         if (null != client) {
             client.close();
         }

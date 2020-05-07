@@ -28,24 +28,24 @@ public class ConnectionTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void ShouldThrowErrorIfNullHostProvided() {
-        ElasticSearchClient client = connection.open(null, 5601);
+        Client client = connection.open(null, 5601);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void ShouldThrowErrorIfEmptyHostProvided() {
-        ElasticSearchClient client = connection.open(null, 5601);
+        Client client = connection.open(null, 5601);
     }
 
     @Test
     public void ShouldOpenConnection() {
-        ElasticSearchClient client = connection.open("localhost", 5601);
+        Client client = connection.open("localhost", 5601);
         assertNotNull(client);
     }
 
     @Test
     public void ShouldCloseConnection() {
         try {
-            ElasticSearchClient client = connection.open("localhost", 5601);
+            Client client = connection.open("localhost", 5601);
             connection.close(client);
         } catch (IOException e) {
             fail();
