@@ -2,6 +2,7 @@ package it.flowing.raw.service;
 
 import it.flowing.raw.model.CreateDocumentResponse;
 import it.flowing.raw.model.Document;
+import it.flowing.raw.model.UpdateDocumentResponse;
 import org.elasticsearch.rest.RestStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -225,57 +226,103 @@ public class RawClientTest {
         }
     }
 
-//    @Test(expected = IllegalArgumentException.class)
-//    public void UpdateDocumentByIdShouldThrowErrorIfEmptyIndexProvided() {
-//        Document document = client.getDocumentById(null, id, Optional.of(options));
-//    }
-//
-//    @Test(expected = IllegalArgumentException.class)
-//    public void UpdateDocumentByIdShouldThrowErrorIfNullIdProvided() {
-//        Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), null, Optional.of(options));
-//    }
-//
-//    @Test(expected = IllegalArgumentException.class)
-//    public void UpdateDocumentByIdShouldThrowErrorIfEmptyIdProvided() {
-//        Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), "", Optional.of(options));
-//    }
-//
-//    @Test
-//    public void UpdateDocumentByIdShouldReturnTheMetadataIfIdExists() {
-//        try {
-//            Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), id, Optional.of(options));
-//
-//            assertNotNull(document);
-//        } catch (IOException e) {
-//            fail();
-//        }
-//    }
-//
-//    @Test(expected = IllegalArgumentException.class)
-//    public void DeleteDocumentByIdShouldThrowErrorIfEmptyIndexProvided() {
-//        Document document = client.getDocumentById(null, id, Optional.of(options));
-//    }
-//
-//    @Test(expected = IllegalArgumentException.class)
-//    public void DeleteDocumentByIdShouldThrowErrorIfNullIdProvided() {
-//        Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), null, Optional.of(options));
-//    }
-//
-//    @Test(expected = IllegalArgumentException.class)
-//    public void DeleteDocumentByIdShouldThrowErrorIfEmptyIdProvided() {
-//        Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), "", Optional.of(options));
-//    }
-//
-//    @Test
-//    public void DeleteDocumentByIdShouldReturnTheMetadataIfIdExists() {
-//        try {
-//            Document document = client.getDocumentById(rawConfiguration.getIndexNameTest(), id, Optional.of(options));
-//
-//            assertNotNull(document);
-//        } catch (IOException e) {
-//            fail();
-//        }
-//    }
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullIndexProvided() {
+        try {
+            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(null,
+                    rawConfiguration.getUuidGetDocumentTest(),
+                    null, Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void UpdateDocumentShouldThrowErrorIfEmptyIndexProvided() {
+        try {
+            UpdateDocumentResponse updateDocumentResponse = client.updateDocument("",
+                    rawConfiguration.getUuidGetDocumentTest(),
+                    null, Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullIdProvided() {
+        try {
+            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                    null,
+                    null, Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void UpdateDocumentShouldThrowErrorIfEmptyIdProvided() {
+        try {
+            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                    "",
+                    null, Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullMetadataProvided() {
+        try {
+            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidGetDocumentTest(),
+                    null, Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test
+    public void UpdateDocumentShouldChangeMetadataNome() {
+        UpdateDocumentResponse updateDocumentResponse = null;
+        Document document = null;
+        String newName = "Giulio";
+        try {
+            Map<String, Object> metadataToUpdate = new HashMap<>();
+            metadataToUpdate.put("nome", newName);
+            updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidGetDocumentTest(),
+                    metadataToUpdate,
+                    Optional.empty());
+
+            document = client.getDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidGetDocumentTest(),
+                    Optional.empty());
+
+        } catch (IOException e) {
+            fail();
+        }
+
+        assertNotNull(updateDocumentResponse);
+        assertEquals(newName, document.getSource().get("nome"));
+    }
+
+    @Test
+    public void UpdateDocumentWithIdNotFoundShouldReturnNull() {
+        UpdateDocumentResponse updateDocumentResponse = null;
+        try {
+            Map<String, Object> metadataToUpdate = new HashMap<>();
+            metadataToUpdate.put("nome", "Giulio");
+            updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                    "asdf1234",
+                    metadataToUpdate,
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+
+        assertNull(updateDocumentResponse);
+    }
+
 
     private Map<String, Object> getDummyDataForCreateDocument() {
         Map<String, Object> metadata = new HashMap<>();
