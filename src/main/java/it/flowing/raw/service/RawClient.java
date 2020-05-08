@@ -1,22 +1,23 @@
 package it.flowing.raw.service;
 
 import com.google.common.base.Preconditions;
-import it.flowing.raw.model.CreateDocumentResponse;
-import it.flowing.raw.model.DeleteDocumentResponse;
-import it.flowing.raw.model.Document;
-import it.flowing.raw.model.UpdateDocumentResponse;
+import it.flowing.raw.model.*;
 import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 import java.io.IOException;
@@ -42,6 +43,26 @@ public class RawClient {
 
     public void close() throws IOException {
         client.close();
+    }
+
+    public boolean deleteIndex(String indexName, Optional<Map<String, Object>> configuration)
+            throws IOException, ElasticsearchException {
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+
+        DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexName);
+
+        // TODO: gestire parametro configuration
+
+        try {
+            AcknowledgedResponse deleteIndexResponse = client.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+            return deleteIndexResponse.isAcknowledged();
+        } catch (ElasticsearchException e) {
+            if (e.status() == RestStatus.NOT_FOUND) {
+                return false;
+            }
+            throw e;
+        }
     }
 
     public CreateDocumentResponse createDocument(String indexName, Map<String, Object> metadata, Optional<String> documentId )

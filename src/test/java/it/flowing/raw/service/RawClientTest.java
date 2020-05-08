@@ -1,5 +1,6 @@
 package it.flowing.raw.service;
 
+import com.github.javafaker.Faker;
 import it.flowing.raw.model.CreateDocumentResponse;
 import it.flowing.raw.model.DeleteDocumentResponse;
 import it.flowing.raw.model.Document;
@@ -27,6 +28,10 @@ import static org.junit.Assert.*;
 @RunWith(Arquillian.class)
 public class RawClientTest {
 
+    public static final String WRONG_VALUE = "asdf1234";
+
+    private static boolean setUpIsDone = false;
+
     @Inject
     private RawConnection connection;
 
@@ -36,8 +41,37 @@ public class RawClientTest {
     private RawClient client;
 
     @Before
-    public void init() {
+    public void before() {
         client = connection.open(rawConfiguration.getElasticSearchHost(), rawConfiguration.getElasticSearchPort());
+
+        if (setUpIsDone) {
+            return;
+        }
+
+        try {
+            RawClient client = connection.open(rawConfiguration.getElasticSearchHost(), rawConfiguration.getElasticSearchPort());
+            client.deleteIndex(rawConfiguration.getIndexNameTest(), Optional.empty());
+            popolateIndexWithFakeData();
+            connection.close(client);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        setUpIsDone = true;
+    }
+
+    private void popolateIndexWithFakeData() throws IOException {
+        client.createDocument(rawConfiguration.getIndexNameTest(),
+                getDummyDataForCreateDocument(),
+                Optional.of(rawConfiguration.getUuidGetDocumentTest()));
+
+        client.createDocument(rawConfiguration.getIndexNameTest(),
+                getDummyDataForCreateDocument(),
+                Optional.of(rawConfiguration.getUuidDeleteDocumentTest()));
+
+        client.createDocument(rawConfiguration.getIndexNameDeleteTest(),
+                getDummyDataForCreateDocument(),
+                Optional.of(rawConfiguration.getUuidDeleteDocumentTest()));
     }
 
     @After
@@ -55,358 +89,262 @@ public class RawClientTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void CreateDocumentShouldThrowErrorIfNullIndexProvided() throws IOException {
+    public void DeleteIndexShouldThrowErrorIfNullIndexProvided() throws Exception {
+        client.deleteIndex(null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteIndexShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        client.deleteIndex("", Optional.empty());
+    }
+
+    @Test
+    public void DeleteIndexShouldReturnTrueIfIndexExists() throws Exception {
+        assertTrue(client.deleteIndex(rawConfiguration.getIndexNameDeleteTest(), Optional.empty()));
+    }
+
+    @Test
+    public void DeleteIndexShouldReturnFalseIfIndexNotExists() throws Exception {
+        assertFalse(client.deleteIndex(WRONG_VALUE, Optional.empty()));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void CreateDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
         client.createDocument(null, null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void CreateDocumentShouldThrowErrorIfEmptyIndexProvided() throws IOException {
+    public void CreateDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
         client.createDocument("", null, Optional.empty());
     }
 
     @Test(expected = NullPointerException.class)
-    public void CreateDocumentShouldThrowErrorIfNullMetadataProvided() throws IOException {
+    public void CreateDocumentShouldThrowErrorIfNullMetadataProvided() throws Exception {
         client.createDocument("dummyIndex", null, Optional.empty());
     }
 
     @Test
-    public void CreateDocumentShouldReturnAValidIndexRequestObject() {
-        try {
-            Map<String, Object> metadata = getDummyDataForCreateDocument();
-            CreateDocumentResponse response = null;
-            response = client.createDocument(rawConfiguration.getIndexNameTest(), metadata, Optional.empty());
+    public void CreateDocumentShouldReturnAValidIndexRequestObject() throws Exception {
+        Map<String, Object> metadata = getDummyDataForCreateDocument();
+        CreateDocumentResponse response = null;
+        response = client.createDocument(rawConfiguration.getIndexNameTest(), metadata, Optional.empty());
 
-            assertNotNull(response);
-            assertEquals(RestStatus.CREATED, response.getStatus());
-        } catch (IOException e) {
-            fail();
-        }
+        assertNotNull(response);
+        assertEquals(RestStatus.CREATED, response.getStatus());
     }
 
     @Test
-    public void CreateDocumentShouldReturnTheIdProvided() {
-        try {
-            Map<String, Object> metadata = getDummyDataForCreateDocument();
-            CreateDocumentResponse response = null;
-            String uuid = UUID.randomUUID().toString();
-            response = client.createDocument(rawConfiguration.getIndexNameTest(), metadata, Optional.of(uuid));
+    public void CreateDocumentShouldReturnTheIdProvided() throws Exception {
+        Map<String, Object> metadata = getDummyDataForCreateDocument();
+        CreateDocumentResponse response = null;
+        String uuid = UUID.randomUUID().toString();
+        response = client.createDocument(rawConfiguration.getIndexNameTest(), metadata, Optional.of(uuid));
 
-            assertNotNull(response);
-            assertEquals(RestStatus.CREATED, response.getStatus());
-            assertEquals(uuid, response.getId());
-        } catch (IOException e) {
-            fail();
-        }
+        assertNotNull(response);
+        assertEquals(RestStatus.CREATED, response.getStatus());
+        assertEquals(uuid, response.getId());
     }
 
     @Test(expected = NullPointerException.class)
-    public void GetDocumentShouldThrowErrorIfNullIndexProvided() {
-        try {
-            Document document = client.getDocument(null, rawConfiguration.getUuidGetDocumentTest(), Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void GetDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        Document document = client.getDocument(null, rawConfiguration.getUuidGetDocumentTest(), Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void GetDocumentShouldThrowErrorIfEmptyIndexProvided() {
-        try {
-            Document document = client.getDocument("", rawConfiguration.getUuidGetDocumentTest(), Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void GetDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        Document document = client.getDocument("", rawConfiguration.getUuidGetDocumentTest(), Optional.empty());
     }
 
     @Test(expected = NullPointerException.class)
-    public void GetDocumentShouldThrowErrorIfNullIdProvided() {
-        try {
-            Document document = client.getDocument(rawConfiguration.getIndexNameTest(), null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void GetDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        Document document = client.getDocument(rawConfiguration.getIndexNameTest(), null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void GetDocumentShouldThrowErrorIfEmptyIdProvided() {
-        try {
-            Document document = client.getDocument(rawConfiguration.getIndexNameTest(), "", Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void GetDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        Document document = client.getDocument(rawConfiguration.getIndexNameTest(), "", Optional.empty());
     }
 
     @Test
-    public void GetDocumentWithExistingIdShouldReturnAValidDocumentWithMetadata() {
-        Document document = null;
-        try {
-            document = client.getDocument(
+    public void GetDocumentWithExistingIdShouldReturnAValidDocumentWithMetadata() throws Exception {
+        Document document = client.getDocument(
                     rawConfiguration.getIndexNameTest(),
                     rawConfiguration.getUuidGetDocumentTest(),
                     Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
 
         assertNotNull(document);
-        assertEquals("Marco", document.getSource().get("nome"));
-        assertEquals("Neri", document.getSource().get("cognome"));
     }
 
     @Test
-    public void GetDocumentWithNonExistingShouldReturnNullDocument() {
-        Document document = null;
-        try {
-            document = client.getDocument(
+    public void GetDocumentWithNonExistingShouldReturnNullDocument() throws Exception {
+        Document document = client.getDocument(
                     rawConfiguration.getIndexNameTest(),
                     "asdf1234",
                     Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
 
         assertNull(document);
     }
 
     @Test(expected = NullPointerException.class)
-    public void ExistsDocumentShouldThrowErrorIfNullIndexProvided() {
-        try {
-            boolean exists = client.existsDocument(null, rawConfiguration.getUuidGetDocumentTest());
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        boolean exists = client.existsDocument(null, rawConfiguration.getUuidGetDocumentTest());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void ExistsDocumentShouldThrowErrorIfEmptyIndexProvided() {
-        try {
-            boolean exists = client.existsDocument("", rawConfiguration.getUuidGetDocumentTest());
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        boolean exists = client.existsDocument("", rawConfiguration.getUuidGetDocumentTest());
     }
 
     @Test(expected = NullPointerException.class)
-    public void ExistsDocumentShouldThrowErrorIfNullIdProvided() {
-        try {
-            boolean exists = client.existsDocument(rawConfiguration.getIndexNameTest(), null);
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        boolean exists = client.existsDocument(rawConfiguration.getIndexNameTest(), null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void ExistsDocumentShouldThrowErrorIfEmptyIdProvided() {
-        try {
-            boolean exists = client.existsDocument(rawConfiguration.getIndexNameTest(), "");
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        boolean exists = client.existsDocument(rawConfiguration.getIndexNameTest(), "");
     }
 
     @Test
-    public void ExistsDocumentWithExistingIdShouldReturnTrue() {
-        try {
-            boolean exists = client.existsDocument(
-                    rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidGetDocumentTest());
-            assertTrue(exists);
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentWithExistingIdShouldReturnTrue() throws Exception {
+        boolean exists = client.existsDocument(
+                rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidGetDocumentTest());
+        assertTrue(exists);
     }
 
     @Test
-    public void ExistsDocumentWithNonExistingIdShouldReturnFalse() {
-        try {
-            boolean exists = client.existsDocument(
-                    rawConfiguration.getIndexNameTest(),
-                    "asdf1234");
-            assertFalse(exists);
-        } catch (IOException e) {
-            fail();
-        }
+    public void ExistsDocumentWithNonExistingIdShouldReturnFalse() throws Exception {
+        boolean exists = client.existsDocument(
+                rawConfiguration.getIndexNameTest(),
+                "asdf1234");
+        assertFalse(exists);
     }
 
     @Test(expected = NullPointerException.class)
-    public void UpdateDocumentShouldThrowErrorIfNullIndexProvided() {
-        try {
-            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(null,
-                    rawConfiguration.getUuidGetDocumentTest(),
-                    null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument(null,
+                rawConfiguration.getUuidGetDocumentTest(),
+                null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void UpdateDocumentShouldThrowErrorIfEmptyIndexProvided() {
-        try {
-            UpdateDocumentResponse updateDocumentResponse = client.updateDocument("",
-                    rawConfiguration.getUuidGetDocumentTest(),
-                    null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument("",
+                rawConfiguration.getUuidGetDocumentTest(),
+                null, Optional.empty());
     }
 
     @Test(expected = NullPointerException.class)
-    public void UpdateDocumentShouldThrowErrorIfNullIdProvided() {
-        try {
-            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
-                    null,
-                    null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                null,
+                null, Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void UpdateDocumentShouldThrowErrorIfEmptyIdProvided() {
-        try {
-            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
-                    "",
-                    null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                "",
+                null, Optional.empty());
     }
 
     @Test(expected = NullPointerException.class)
-    public void UpdateDocumentShouldThrowErrorIfNullMetadataProvided() {
-        try {
-            UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidGetDocumentTest(),
-                    null, Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentShouldThrowErrorIfNullMetadataProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidGetDocumentTest(),
+                null, Optional.empty());
     }
 
     @Test
-    public void UpdateDocumentShouldChangeMetadataNome() {
+    public void UpdateDocumentShouldChangeMetadataNome() throws Exception {
         UpdateDocumentResponse updateDocumentResponse = null;
-        Document document = null;
         String newName = "Giulio";
-        try {
-            Map<String, Object> metadataToUpdate = new HashMap<>();
-            metadataToUpdate.put("nome", newName);
-            updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidGetDocumentTest(),
-                    metadataToUpdate,
-                    Optional.empty());
 
-            document = client.getDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidGetDocumentTest(),
-                    Optional.empty());
+        Map<String, Object> metadataToUpdate = new HashMap<>();
+        metadataToUpdate.put("nome", newName);
+        updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidGetDocumentTest(),
+                metadataToUpdate,
+                Optional.empty());
 
-        } catch (IOException e) {
-            fail();
-        }
+        Document document = client.getDocument(rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidGetDocumentTest(),
+                Optional.empty());
 
         assertNotNull(updateDocumentResponse);
         assertEquals(newName, document.getSource().get("nome"));
     }
 
     @Test
-    public void UpdateDocumentWithIdNotFoundShouldReturnNull() {
-        UpdateDocumentResponse updateDocumentResponse = null;
-        try {
-            Map<String, Object> metadataToUpdate = new HashMap<>();
-            metadataToUpdate.put("nome", "Giulio");
-            updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
-                    "asdf1234",
-                    metadataToUpdate,
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void UpdateDocumentWithIdNotFoundShouldReturnNull() throws Exception {
+        Map<String, Object> metadataToUpdate = new HashMap<>();
+        metadataToUpdate.put("nome", "Giulio");
+        UpdateDocumentResponse updateDocumentResponse = client.updateDocument(rawConfiguration.getIndexNameTest(),
+                "asdf1234",
+                metadataToUpdate,
+                Optional.empty());
 
         assertNull(updateDocumentResponse);
     }
 
     @Test(expected = NullPointerException.class)
-    public void DeleteDocumentShouldThrowErrorIfNullIndexProvided() {
-        try {
-            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(null,
-                    rawConfiguration.getUuidDeleteDocumentTest(),
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void DeleteDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(null,
+                rawConfiguration.getUuidDeleteDocumentTest(),
+                Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void DeleteDocumentShouldThrowErrorIfEmptyIndexProvided() {
-        try {
-            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument("",
-                    rawConfiguration.getUuidDeleteDocumentTest(),
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void DeleteDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument("",
+                rawConfiguration.getUuidDeleteDocumentTest(),
+                Optional.empty());
     }
 
     @Test(expected = NullPointerException.class)
-    public void DeleteDocumentShouldThrowErrorIfNullIdProvided() {
-        try {
-            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
-                    null,
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void DeleteDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                null,
+                Optional.empty());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void DeleteDocumentShouldThrowErrorIfEmptyIdProvided() {
-        try {
-            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
-                    "",
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void DeleteDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                "",
+                Optional.empty());
     }
 
     @Test
-    public void DeleteDocumentShouldRemoveDocumentFromIndex() {
-        DeleteDocumentResponse deleteDocumentResponse = null;
-        Document document = null;
-        try {
-            deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidDeleteDocumentTest(),
-                    Optional.empty());
+    public void DeleteDocumentWithValidIdShouldRemoveDocumentFromIndex() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidDeleteDocumentTest(),
+                Optional.empty());
 
-            document = client.getDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidDeleteDocumentTest(),
-                    Optional.empty());
-
-        } catch (IOException e) {
-            fail();
-        }
+        Document document = client.getDocument(rawConfiguration.getIndexNameTest(),
+                rawConfiguration.getUuidDeleteDocumentTest(),
+                Optional.empty());
 
         assertNotNull(deleteDocumentResponse);
         assertNull(document);
     }
 
     @Test
-    public void DeleteDocumentWithNonExistingIdShouldReturnNull() {
-        DeleteDocumentResponse deleteDocumentResponse = null;
-        try {
-            deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
-                    rawConfiguration.getUuidDeleteDocumentTest(),
-                    Optional.empty());
-        } catch (IOException e) {
-            fail();
-        }
+    public void DeleteDocumentWithNonExistingIdShouldReturnNull() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                "asdf1234",
+                Optional.empty());
 
         assertNull(deleteDocumentResponse);
     }
-    
+
     private Map<String, Object> getDummyDataForCreateDocument() {
+        Faker faker = new Faker();
+
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("nome", "Marco");
-        metadata.put("cognome", "Neri");
+        metadata.put("nome", faker.name().firstName());
+        metadata.put("cognome", faker.name().lastName());
         return metadata;
     }
 

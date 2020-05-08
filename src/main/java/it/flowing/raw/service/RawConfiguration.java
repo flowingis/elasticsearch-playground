@@ -12,6 +12,7 @@ public class RawConfiguration {
     private String elasticSearchHost;
     private int elasticSearchPort;
     private String indexNameTest;
+    private String indexNameDeleteTest;
 
     public RawConfiguration() {
         // TODO: Leggere da file di configurazione
@@ -20,6 +21,7 @@ public class RawConfiguration {
         elasticSearchHost = "localhost";
         elasticSearchPort = 9200;
         indexNameTest = "javatest";
+        indexNameDeleteTest = "javatestdelete";
     }
 
 }
