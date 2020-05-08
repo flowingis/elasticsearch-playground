@@ -1,5 +1,6 @@
 package it.flowing.raw.service;
 
+import com.google.common.base.Preconditions;
 import it.flowing.raw.model.CreateDocumentResponse;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.index.IndexRequest;
@@ -35,13 +36,9 @@ public class RawClient {
 
     public CreateDocumentResponse createDocument(String indexName, Map<String, Object> metadata, Optional<String> documentId )
             throws IllegalArgumentException, IOException {
-        if (null == indexName || indexName.isEmpty()) {
-            throw new IllegalArgumentException();
-        }
-
-        if (null == metadata) {
-            throw new IllegalArgumentException();
-        }
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+        Preconditions.checkNotNull(metadata);
 
         IndexRequest indexRequest = new IndexRequest(indexName).source(metadata);
         if (documentId.isPresent()) {

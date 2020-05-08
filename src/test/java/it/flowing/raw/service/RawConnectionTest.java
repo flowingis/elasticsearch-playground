@@ -29,14 +29,14 @@ public class RawConnectionTest {
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void ShouldThrowErrorIfNullHostProvided() {
         RawClient client = connection.open(null, 5601);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void ShouldThrowErrorIfEmptyHostProvided() {
-        RawClient client = connection.open(null, 5601);
+        RawClient client = connection.open("", 5601);
     }
 
     @Test

@@ -51,7 +51,7 @@ public class RawClientTest {
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void CreateDocumentShouldThrowErrorIfNullIndexProvided() throws IOException {
         client.createDocument(null, null, Optional.empty());
     }
@@ -61,7 +61,7 @@ public class RawClientTest {
         client.createDocument("", null, Optional.empty());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void CreateDocumentShouldThrowErrorIfNullMetadataProvided() throws IOException {
         client.createDocument("dummyIndex", null, Optional.empty());
     }

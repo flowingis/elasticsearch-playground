@@ -1,5 +1,7 @@
 package it.flowing.raw.service;
 
+import com.google.common.base.Preconditions;
+
 import javax.enterprise.context.ApplicationScoped;
 import java.io.IOException;
 
@@ -24,9 +26,8 @@ public class RawConnection {
     }
 
     private void checkHost(String host) {
-        if (null == host || host.isEmpty()) {
-            throw new IllegalArgumentException();
-        }
+        Preconditions.checkNotNull(host);
+        Preconditions.checkArgument(!host.isEmpty());
     }
 
     public void close(RawClient client) throws IOException {
