@@ -2,9 +2,12 @@ package it.flowing.raw.service;
 
 import com.google.common.base.Preconditions;
 import it.flowing.raw.model.CreateDocumentResponse;
+import it.flowing.raw.model.DeleteDocumentResponse;
 import it.flowing.raw.model.Document;
 import it.flowing.raw.model.UpdateDocumentResponse;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -75,7 +78,8 @@ public class RawClient {
         if (!this.existsDocument(indexName, documentId)) {
             return null;
         }
-        
+
+        // TODO: testare funzionamento con le varie opzioni di configuration
         UpdateRequest updateRequest = new UpdateRequest(indexName, documentId)
                 .doc(metadataToUpdate);
 
@@ -86,6 +90,31 @@ public class RawClient {
                 .build();
 
         return updateDocumentResponse;
+    }
+
+    public DeleteDocumentResponse deleteDocument(String indexName,
+                                                 String documentId,
+                                                 Optional<Map<String, Object>> configuration)
+            throws IllegalArgumentException, IOException {
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+        Preconditions.checkNotNull(documentId);
+        Preconditions.checkArgument(!documentId.isEmpty());
+
+        if (!this.existsDocument(indexName, documentId)) {
+            return null;
+        }
+
+        // TODO: testare funzionamento con le varie opzioni di configuration
+        DeleteRequest deleteRequest = new DeleteRequest(indexName, documentId);
+
+        DeleteResponse deleteResponse = client.delete(deleteRequest, RequestOptions.DEFAULT);
+        DeleteDocumentResponse deleteDocumentResponse = DeleteDocumentResponse.builder()
+                .status(deleteResponse.status())
+                .id(deleteResponse.getId())
+                .build();
+
+        return deleteDocumentResponse;
     }
 
     public boolean existsDocument(String indexName, String documentId) throws IOException {

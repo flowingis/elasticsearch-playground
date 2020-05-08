@@ -1,6 +1,7 @@
 package it.flowing.raw.service;
 
 import it.flowing.raw.model.CreateDocumentResponse;
+import it.flowing.raw.model.DeleteDocumentResponse;
 import it.flowing.raw.model.Document;
 import it.flowing.raw.model.UpdateDocumentResponse;
 import org.elasticsearch.rest.RestStatus;
@@ -323,7 +324,85 @@ public class RawClientTest {
         assertNull(updateDocumentResponse);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void DeleteDocumentShouldThrowErrorIfNullIndexProvided() {
+        try {
+            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(null,
+                    rawConfiguration.getUuidDeleteDocumentTest(),
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteDocumentShouldThrowErrorIfEmptyIndexProvided() {
+        try {
+            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument("",
+                    rawConfiguration.getUuidDeleteDocumentTest(),
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void DeleteDocumentShouldThrowErrorIfNullIdProvided() {
+        try {
+            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                    null,
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteDocumentShouldThrowErrorIfEmptyIdProvided() {
+        try {
+            DeleteDocumentResponse deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                    "",
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    @Test
+    public void DeleteDocumentShouldRemoveDocumentFromIndex() {
+        DeleteDocumentResponse deleteDocumentResponse = null;
+        Document document = null;
+        try {
+            deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidDeleteDocumentTest(),
+                    Optional.empty());
+
+            document = client.getDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidDeleteDocumentTest(),
+                    Optional.empty());
+
+        } catch (IOException e) {
+            fail();
+        }
+
+        assertNotNull(deleteDocumentResponse);
+        assertNull(document);
+    }
+
+    @Test
+    public void DeleteDocumentWithNonExistingIdShouldReturnNull() {
+        DeleteDocumentResponse deleteDocumentResponse = null;
+        try {
+            deleteDocumentResponse = client.deleteDocument(rawConfiguration.getIndexNameTest(),
+                    rawConfiguration.getUuidDeleteDocumentTest(),
+                    Optional.empty());
+        } catch (IOException e) {
+            fail();
+        }
+
+        assertNull(deleteDocumentResponse);
+    }
+    
     private Map<String, Object> getDummyDataForCreateDocument() {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("nome", "Marco");
