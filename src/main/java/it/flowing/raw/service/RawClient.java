@@ -2,12 +2,16 @@ package it.flowing.raw.service;
 
 import com.google.common.base.Preconditions;
 import it.flowing.raw.model.CreateDocumentResponse;
+import it.flowing.raw.model.Document;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 import java.io.IOException;
 import java.util.Map;
@@ -54,4 +58,37 @@ public class RawClient {
         return createDocumentResponse;
     }
 
+    public boolean existsDocument(String indexName, String documentId) throws IOException {
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+        Preconditions.checkNotNull(documentId);
+        Preconditions.checkArgument(!documentId.isEmpty());
+
+        GetRequest getRequest = new GetRequest(indexName, documentId);
+        getRequest.fetchSourceContext(new FetchSourceContext(false));
+        getRequest.storedFields("_none_");
+
+        return client.exists(getRequest, RequestOptions.DEFAULT);
+    }
+
+    public Document getDocument(String indexName, String documentId, Optional<Object> configuration) throws IOException {
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+        Preconditions.checkNotNull(documentId);
+        Preconditions.checkArgument(!documentId.isEmpty());
+
+        GetRequest getRequest = new GetRequest(indexName, documentId);
+        //TODO: Gestire parametro configuration
+        GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
+
+        if (getResponse.isExists()) {
+            return Document
+                    .builder()
+                    .fields(getResponse.getFields())
+                    .source(getResponse.getSource())
+                    .build();
+        }
+
+        return null;
+    }
 }
