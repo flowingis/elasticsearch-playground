@@ -1,6 +1,6 @@
-package it.flowing.service;
+package it.flowing.raw.service;
 
-import model.CreateDocumentResponse;
+import it.flowing.raw.model.CreateDocumentResponse;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -12,21 +12,21 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
-public class Client {
+public class RawClient {
 
     private RestHighLevelClient client;
 
-    private Client(RestHighLevelClient client) {
+    private RawClient(RestHighLevelClient client) {
         this.client = client;
     }
 
-    public static Client newClient(String host, int port) {
+    public static RawClient newClient(String host, int port) {
         RestHighLevelClient client = new RestHighLevelClient(
                 RestClient.builder(
                         new HttpHost(host, port)
                 )
         );
-        return new Client(client);
+        return new RawClient(client);
     }
 
     public void close() throws IOException {

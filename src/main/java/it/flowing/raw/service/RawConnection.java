@@ -1,19 +1,19 @@
-package it.flowing.service;
+package it.flowing.raw.service;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.io.IOException;
 
 @ApplicationScoped
-public class Connection {
+public class RawConnection {
 
     private static final String PROTOCOL = "http";
     private static final int DEFAULT_PORT = 9200;
 
-    public Client open(String host, int port) throws IllegalArgumentException {
+    public RawClient open(String host, int port) throws IllegalArgumentException {
         checkHost(host);
         port = checkPort(port);
 
-        return Client.newClient(host, port);
+        return RawClient.newClient(host, port);
     }
 
     private int checkPort(int port) {
@@ -29,7 +29,7 @@ public class Connection {
         }
     }
 
-    public void close(Client client) throws IOException {
+    public void close(RawClient client) throws IOException {
         if (null != client) {
             client.close();
         }

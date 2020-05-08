@@ -1,4 +1,4 @@
-package model;
+package it.flowing.raw.model;
 
 import lombok.Builder;
 import lombok.Getter;
