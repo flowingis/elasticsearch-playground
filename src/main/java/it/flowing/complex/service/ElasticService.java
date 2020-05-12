@@ -71,6 +71,10 @@ public class ElasticService {
             searchSourceBuilder.size(queryData.getSize().get());
         }
 
+        if (queryData.getTimeout().isPresent()) {
+            searchSourceBuilder.timeout(queryData.getTimeout().get());
+        }
+
         searchRequest.indices(serverConfiguration.getSearchIndex());
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);

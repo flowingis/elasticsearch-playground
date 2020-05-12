@@ -4,6 +4,7 @@ import it.flowing.complex.model.QueryData;
 import it.flowing.complex.model.SearchResult;
 import it.flowing.complex.model.SearchType;
 import org.apache.lucene.search.TotalHits;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -18,6 +19,7 @@ import org.junit.runner.RunWith;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -107,6 +109,18 @@ public class ElasticServiceTest {
 
         SearchResult searchResult = elasticService.search(queryData);
         assertEquals(2L, searchResult.getHits().size());
+    }
+
+    @Test
+    public void SearchWithTimeoutShouldReturnTimedOutStatus() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withTimeout(Optional.of(new TimeValue(5, TimeUnit.MINUTES)));
+
+        SearchResult searchResult = elasticService.search(queryData);
+        assertFalse(searchResult.getTimedOut());
+
+        // TODO: Verificare: impostando il timeout ad un valore basso, se la query impiega di più, getTimedOut ritorna false
     }
 
 }
