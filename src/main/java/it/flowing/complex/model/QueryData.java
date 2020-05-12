@@ -21,4 +21,6 @@ public class QueryData {
     private Optional<Integer> size = Optional.empty();
     private Optional<TimeValue> timeout = Optional.empty();
     private List<SortBuilder<?>> sortingCriteria = new ArrayList<>();
+    private Optional<String[]> includeFields = Optional.empty();
+    private Optional<String[]> excludeFields = Optional.empty();
 }

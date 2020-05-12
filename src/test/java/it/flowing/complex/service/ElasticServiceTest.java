@@ -92,6 +92,7 @@ public class ElasticServiceTest {
                 .withFrom(Optional.of(4670));
 
         SearchResult searchResult = elasticService.search(queryData);
+
         assertEquals(5L, searchResult.getHits().size());
     }
 
@@ -102,6 +103,7 @@ public class ElasticServiceTest {
                 .withSize(Optional.of(5));
 
         SearchResult searchResult = elasticService.search(queryData);
+
         assertEquals(5L, searchResult.getHits().size());
     }
 
@@ -113,6 +115,7 @@ public class ElasticServiceTest {
                 .withSize(Optional.of(2));
 
         SearchResult searchResult = elasticService.search(queryData);
+
         assertEquals(2L, searchResult.getHits().size());
     }
 
@@ -123,9 +126,9 @@ public class ElasticServiceTest {
                 .withTimeout(Optional.of(new TimeValue(5, TimeUnit.MINUTES)));
 
         SearchResult searchResult = elasticService.search(queryData);
-        assertFalse(searchResult.getTimedOut());
 
         // TODO: Verificare: impostando il timeout ad un valore basso, se la query impiega di più, getTimedOut ritorna false
+        assertFalse(searchResult.getTimedOut());
     }
 
     @Test
@@ -138,7 +141,24 @@ public class ElasticServiceTest {
                 .withSize(Optional.of(1));
 
         SearchResult searchResult = elasticService.search(queryData);
+
         assertEquals(10, searchResult.getHits().get(0).getSourceAsMap().get("customer_id"));
+    }
+
+    @Test
+    public void SearchWithExcludeAndIncludeFieldsShouldReturnOnlyTheRequestedFields() throws Exception {
+        String[] excludeFields = new String[] { "customer_id" };
+        String[] includeFields = new String[] { "email" };
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withExcludeFields(Optional.of(excludeFields))
+                .withIncludeFields(Optional.of(includeFields))
+                .withSize(Optional.of(1));
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertNull(searchResult.getHits().get(0).getSourceAsMap().get("customer_id"));
+        assertNotNull(searchResult.getHits().get(0).getSourceAsMap().get("email"));
     }
 
 }

@@ -80,6 +80,10 @@ public class ElasticService {
             searchSourceBuilder.sort(sortBuilder);
         }
 
+        if (queryData.getExcludeFields().isPresent() && queryData.getIncludeFields().isPresent()) {
+            searchSourceBuilder.fetchSource(queryData.getIncludeFields().get(), queryData.getExcludeFields().get());
+        }
+
         searchRequest.indices(serverConfiguration.getSearchIndex());
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
