@@ -6,7 +6,6 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -17,7 +16,6 @@ import java.io.IOException;
 public class ElasticServiceTest {
 
     public static final String FAKE_INDEX = "fakeIndex";
-    private static boolean setUpIsDone = false;
 
     @Inject
     private ElasticService elasticService;
@@ -28,15 +26,6 @@ public class ElasticServiceTest {
                 .addPackages(false,
                         "it.flowing.complex.service")
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
-    }
-
-    @Before
-    public void before() {
-        if (setUpIsDone) {
-            return;
-        }
-
-        setUpIsDone = true;
     }
 
     @After
