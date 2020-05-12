@@ -12,6 +12,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -73,6 +74,10 @@ public class ElasticService {
 
         if (queryData.getTimeout().isPresent()) {
             searchSourceBuilder.timeout(queryData.getTimeout().get());
+        }
+
+        for (SortBuilder sortBuilder : queryData.getSortingCriteria()) {
+            searchSourceBuilder.sort(sortBuilder);
         }
 
         searchRequest.indices(serverConfiguration.getSearchIndex());

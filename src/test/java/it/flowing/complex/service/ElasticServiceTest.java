@@ -6,6 +6,9 @@ import it.flowing.complex.model.SearchType;
 import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -18,6 +21,8 @@ import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -121,6 +126,19 @@ public class ElasticServiceTest {
         assertFalse(searchResult.getTimedOut());
 
         // TODO: Verificare: impostando il timeout ad un valore basso, se la query impiega di più, getTimedOut ritorna false
+    }
+
+    @Test
+    public void SearchWithSortingCriteriaShouldReturnSortedResults() throws Exception {
+        List<SortBuilder<?>> sortingCriteria = new ArrayList<>();
+        sortingCriteria.add(new FieldSortBuilder("customer_id").order(SortOrder.ASC));
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withSortingCriteria(sortingCriteria)
+                .withSize(Optional.of(1));
+
+        SearchResult searchResult = elasticService.search(queryData);
+        assertEquals(10, searchResult.getHits().get(0).getSourceAsMap().get("customer_id"));
     }
 
 }
