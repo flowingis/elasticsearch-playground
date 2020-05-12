@@ -9,10 +9,12 @@ import javax.enterprise.context.ApplicationScoped;
 public class ServerConfiguration {
     private String host;
     private int port;
+    private String searchIndex;
 
     public ServerConfiguration() {
         // TODO: Leggere da un file di configurazione
         host = "localhost";
         port = 9200;
+        searchIndex = "kibana_sample_data_ecommerce";
     }
 }

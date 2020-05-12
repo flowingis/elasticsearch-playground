@@ -1,10 +1,17 @@
 package it.flowing.complex.service;
 
 import com.google.common.base.Preconditions;
+import it.flowing.complex.model.QueryData;
+import it.flowing.complex.model.SearchResult;
 import lombok.NoArgsConstructor;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -22,10 +29,9 @@ public class ElasticService {
     @Inject
     public ElasticService(ServerConfiguration serverConfiguration) {
         this.serverConfiguration = serverConfiguration;
-        createClient();
     }
 
-    private void createClient() {
+    public void openConnection() {
         Preconditions.checkNotNull(serverConfiguration);
 
         client = new RestHighLevelClient(
@@ -35,22 +41,36 @@ public class ElasticService {
         );
     }
 
-    public void terminate() throws IOException {
+    public void closeConnection() throws IOException {
         if (null != client) {
             client.close();
         }
     }
 
-    public SearchResult search(String indexName, QueryBuilder queryBuilder) {
-        checkSearchPreconditions(indexName, queryBuilder);
+    public SearchResult search(QueryData queryData) throws IOException {
+        checkSearchPreconditions(queryData);
 
-        return null;
+        switch (queryData.getSearchType()) {
+            case MATCH_ALL_QUERY:
+                return searchMatchAllQuery();
+            default:
+                return searchMatchAllQuery();
+        }
+
     }
 
-    private void checkSearchPreconditions(String indexName, QueryBuilder queryBuilder) {
-        Preconditions.checkNotNull(indexName);
-        Preconditions.checkArgument(!indexName.isEmpty());
-        Preconditions.checkNotNull(queryBuilder);
+    private SearchResult searchMatchAllQuery() throws IOException {
+        SearchRequest searchRequest = new SearchRequest();
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchRequest.indices(serverConfiguration.getSearchIndex());
+        searchRequest.source(searchSourceBuilder);
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        return SearchResult.fromSearchResponse(searchResponse);
+    }
+
+    private void checkSearchPreconditions(QueryData queryData) {
+        Preconditions.checkNotNull(queryData);
     }
 
 }
