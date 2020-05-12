@@ -52,17 +52,25 @@ public class ElasticService {
 
         switch (queryData.getSearchType()) {
             case MATCH_ALL_QUERY:
-                return searchMatchAllQuery();
-            default:
-                return searchMatchAllQuery();
+                return searchMatchAllQuery(queryData);
         }
 
+        return null;
     }
 
-    private SearchResult searchMatchAllQuery() throws IOException {
+    private SearchResult searchMatchAllQuery(QueryData queryData) throws IOException {
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+
+        if (queryData.getFrom().isPresent()) {
+            searchSourceBuilder.from(queryData.getFrom().get());
+        }
+
+        if (queryData.getSize().isPresent()) {
+            searchSourceBuilder.size(queryData.getSize().get());
+        }
+
         searchRequest.indices(serverConfiguration.getSearchIndex());
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);

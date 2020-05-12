@@ -3,6 +3,7 @@ package it.flowing.complex.service;
 import it.flowing.complex.model.QueryData;
 import it.flowing.complex.model.SearchResult;
 import it.flowing.complex.model.SearchType;
+import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.rest.RestStatus;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -16,6 +17,7 @@ import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.junit.Assert.*;
 
@@ -72,6 +74,39 @@ public class ElasticServiceTest {
 
         // Hits
         assertEquals(4675L, searchResult.getNumHits());
+        assertEquals(1.0f, searchResult.getMaxScore(), 0.1f);
+        assertEquals(TotalHits.Relation.EQUAL_TO, searchResult.getHitsRelation());
+    }
+
+    @Test
+    public void SearchWithFromShouldReturnTheRightSubsetOfResult() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withFrom(Optional.of(4670));
+
+        SearchResult searchResult = elasticService.search(queryData);
+        assertEquals(5L, searchResult.getHits().size());
+    }
+
+    @Test
+    public void SearchWithSizeShouldReturnTheRightSubsetOfResult() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withSize(Optional.of(5));
+
+        SearchResult searchResult = elasticService.search(queryData);
+        assertEquals(5L, searchResult.getHits().size());
+    }
+
+    @Test
+    public void SearchWithPaginationShouldReturnTheRightSubsetOfResult() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withFrom(Optional.of(1))
+                .withSize(Optional.of(2));
+
+        SearchResult searchResult = elasticService.search(queryData);
+        assertEquals(2L, searchResult.getHits().size());
     }
 
 }

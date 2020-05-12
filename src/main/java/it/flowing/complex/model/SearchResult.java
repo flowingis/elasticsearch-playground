@@ -4,9 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.With;
+import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.SearchHit;
+
+import java.util.Arrays;
+import java.util.List;
 
 @With
 @NoArgsConstructor
@@ -27,6 +32,11 @@ public class SearchResult {
 
     // SearchHits
     private long numHits;
+    private float maxScore;
+    private TotalHits.Relation hitsRelation;
+
+    // Hits
+    private List<SearchHit> hits;
 
     public static SearchResult fromSearchResponse(SearchResponse searchResponse) {
         return (new SearchResult())
@@ -37,7 +47,10 @@ public class SearchResult {
                 .withTotalShards(searchResponse.getTotalShards())
                 .withSuccessfulShards(searchResponse.getTotalShards())
                 .withFailedShards(searchResponse.getFailedShards())
-                .withNumHits(searchResponse.getHits().getTotalHits().value);
+                .withNumHits(searchResponse.getHits().getTotalHits().value)
+                .withMaxScore(searchResponse.getHits().getMaxScore())
+                .withHitsRelation(searchResponse.getHits().getTotalHits().relation)
+                .withHits(Arrays.asList(searchResponse.getHits().getHits()));
     }
 
 }
