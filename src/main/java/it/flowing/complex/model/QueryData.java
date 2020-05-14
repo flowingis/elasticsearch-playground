@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.With;
+import org.apache.commons.lang3.tuple.Pair;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.sort.SortBuilder;
 
@@ -26,4 +27,5 @@ public class QueryData {
     private Optional<String[]> excludeFields = Optional.empty();
     private List<Map<String, Object>> highlightFields = new ArrayList<>();
     private List<Map<String, Object>> aggregationInfo = new ArrayList<>();
+    private List<Pair<String, String>> suggestions = new ArrayList<>();
 }

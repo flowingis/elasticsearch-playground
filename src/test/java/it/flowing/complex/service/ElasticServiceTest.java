@@ -1,6 +1,8 @@
 package it.flowing.complex.service;
 
 import it.flowing.complex.model.*;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
@@ -210,6 +212,21 @@ public class ElasticServiceTest {
         assertEquals(1, searchResult.getAggregations().asList().size());
         assertEquals(3.16, averageDayOfWeekMale.getValue(), 0.01);
         assertEquals(3.07, averageDayOfWeekFemale.getValue(), 0.01);
+    }
+
+    @Test
+    public void SearchWithSuggestionShouldReturnSuggestedResult() throws Exception {
+        List<Pair<String, String>> suggestions = new ArrayList<>();
+        suggestions.add(new ImmutablePair<>("currency", "EUR"));
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withSuggestions(suggestions)
+                .withSize(Optional.of(1));
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(1, searchResult.getSuggest().getSuggestion("suggest_currency").getEntries().size());
+        assertEquals("EUR", searchResult.getSuggest().getSuggestion("suggest_currency").getEntries().get(0).getText().string());
     }
 
 }

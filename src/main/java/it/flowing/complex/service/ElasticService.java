@@ -3,6 +3,7 @@ package it.flowing.complex.service;
 import com.google.common.base.Preconditions;
 import it.flowing.complex.model.*;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -14,6 +15,9 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.SuggestionBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -82,6 +86,8 @@ public class ElasticService {
 
         addAggregations(queryData, searchSourceBuilder);
 
+        addSuggestions(queryData, searchSourceBuilder);
+
         searchRequest.indices(serverConfiguration.getSearchIndex());
         searchRequest.source(searchSourceBuilder);
 
@@ -101,6 +107,7 @@ public class ElasticService {
     }
 
     private void addAggregations(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
+        // TODO: Verificare la possibilità di effettuare aggregazioni multiple
         for(Map<String, Object> aggregation : queryData.getAggregationInfo()) {
             TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(aggregation.get(AggregationInfoFieldName.TERM.toString()).toString())
                     .field(aggregation.get(AggregationInfoFieldName.FIELD.toString()).toString());
@@ -112,6 +119,20 @@ public class ElasticService {
             }
             searchSourceBuilder.aggregation(termsAggregationBuilder);
         }
+    }
+
+    private void addSuggestions(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+
+        for(Pair<String, String> suggestion : queryData.getSuggestions()) {
+            SuggestionBuilder termSuggestionBuilder = SuggestBuilders
+                    .termSuggestion(suggestion.getLeft())
+                    .text(suggestion.getRight());
+
+            suggestBuilder.addSuggestion("suggest_" + suggestion.getLeft(), termSuggestionBuilder);
+        }
+
+        searchSourceBuilder.suggest(suggestBuilder);
     }
 
     private void addHighlightFields(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
