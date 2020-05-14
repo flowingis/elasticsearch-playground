@@ -9,6 +9,7 @@ import org.elasticsearch.search.sort.SortBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @With
@@ -23,4 +24,5 @@ public class QueryData {
     private List<SortBuilder<?>> sortingCriteria = new ArrayList<>();
     private Optional<String[]> includeFields = Optional.empty();
     private Optional<String[]> excludeFields = Optional.empty();
+    private List<Map<String, Object>> highlightFields = new ArrayList<>();
 }

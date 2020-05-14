@@ -1,5 +1,6 @@
 package it.flowing.complex.service;
 
+import it.flowing.complex.model.HighlightFieldType;
 import it.flowing.complex.model.QueryData;
 import it.flowing.complex.model.SearchResult;
 import it.flowing.complex.model.SearchType;
@@ -21,9 +22,7 @@ import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -159,6 +158,26 @@ public class ElasticServiceTest {
 
         assertNull(searchResult.getHits().get(0).getSourceAsMap().get("customer_id"));
         assertNotNull(searchResult.getHits().get(0).getSourceAsMap().get("email"));
+    }
+
+    @Test
+    public void SearchWithHighlighFieldShouldReturnHighlighedResult() throws Exception {
+        List<Map<String, Object>> highlightFields = new ArrayList<>();
+        highlightFields.add(
+            new HashMap<String, Object>() {{
+                put(HighlightFieldType.NAME.toString(), "email");
+                put(HighlightFieldType.TYPE.toString(), "unified");
+            }}
+        );
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withHighlightFields(highlightFields)
+                .withSize(Optional.of(1));
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        // TODO: Modificare assertion una volta definiti dei parametri di ricerca
+        assertEquals(0, searchResult.getHits().get(0).getHighlightFields().size());
     }
 
 }

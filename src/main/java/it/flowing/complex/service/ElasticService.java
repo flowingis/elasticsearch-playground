@@ -1,6 +1,7 @@
 package it.flowing.complex.service;
 
 import com.google.common.base.Preconditions;
+import it.flowing.complex.model.HighlightFieldType;
 import it.flowing.complex.model.QueryData;
 import it.flowing.complex.model.SearchResult;
 import lombok.NoArgsConstructor;
@@ -12,11 +13,13 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.Map;
 
 @ApplicationScoped
 @NoArgsConstructor
@@ -82,6 +85,16 @@ public class ElasticService {
 
         if (queryData.getExcludeFields().isPresent() && queryData.getIncludeFields().isPresent()) {
             searchSourceBuilder.fetchSource(queryData.getIncludeFields().get(), queryData.getExcludeFields().get());
+        }
+
+        for(Map<String, Object> highlightField : queryData.getHighlightFields()) {
+            HighlightBuilder highlightBuilder = new HighlightBuilder();
+            HighlightBuilder.Field field = new HighlightBuilder.Field(highlightField.get(HighlightFieldType.NAME.toString()).toString());
+            if (highlightField.containsKey(HighlightFieldType.TYPE.toString())) {
+                field.highlighterType(highlightField.get(HighlightFieldType.TYPE.toString()).toString());
+            }
+            highlightBuilder.field(field);
+            searchSourceBuilder.highlighter(highlightBuilder);
         }
 
         searchRequest.indices(serverConfiguration.getSearchIndex());
