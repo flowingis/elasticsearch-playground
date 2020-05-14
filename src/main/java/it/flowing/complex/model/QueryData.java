@@ -25,4 +25,5 @@ public class QueryData {
     private Optional<String[]> includeFields = Optional.empty();
     private Optional<String[]> excludeFields = Optional.empty();
     private List<Map<String, Object>> highlightFields = new ArrayList<>();
+    private List<Map<String, Object>> aggregationInfo = new ArrayList<>();
 }

@@ -9,6 +9,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.Aggregations;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +39,9 @@ public class SearchResult {
     // Hits
     private List<SearchHit> hits;
 
+    // Aggregation
+    private Aggregations aggregations;
+
     public static SearchResult fromSearchResponse(SearchResponse searchResponse) {
         return (new SearchResult())
                 .withStatus(searchResponse.status())
@@ -50,7 +54,8 @@ public class SearchResult {
                 .withNumHits(searchResponse.getHits().getTotalHits().value)
                 .withMaxScore(searchResponse.getHits().getMaxScore())
                 .withHitsRelation(searchResponse.getHits().getTotalHits().relation)
-                .withHits(Arrays.asList(searchResponse.getHits().getHits()));
+                .withHits(Arrays.asList(searchResponse.getHits().getHits()))
+                .withAggregations(searchResponse.getAggregations());
     }
 
 }

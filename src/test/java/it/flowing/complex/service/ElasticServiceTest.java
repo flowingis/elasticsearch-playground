@@ -1,12 +1,11 @@
 package it.flowing.complex.service;
 
-import it.flowing.complex.model.HighlightFieldType;
-import it.flowing.complex.model.QueryData;
-import it.flowing.complex.model.SearchResult;
-import it.flowing.complex.model.SearchType;
+import it.flowing.complex.model.*;
 import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.metrics.Avg;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -178,6 +177,39 @@ public class ElasticServiceTest {
 
         // TODO: Modificare assertion una volta definiti dei parametri di ricerca
         assertEquals(0, searchResult.getHits().get(0).getHighlightFields().size());
+    }
+
+    @Test
+    public void SearchWithAggregationShouldReturnAggregateField() throws Exception {
+        List<Map<String, Object>> aggregationInfo = new ArrayList<>();
+        aggregationInfo.add(
+            new HashMap<String, Object>() {{
+                put(AggregationInfoFieldName.TERM.toString(), "by_customer_gender");
+                put(AggregationInfoFieldName.FIELD.toString(), "customer_gender");
+                put(AggregationInfoFieldName.AGGREGATION_TYPE.toString(), AggregationType.AVG);
+                put(AggregationInfoFieldName.SUB_NAME.toString(), "average_day_of_week_i");
+                put(AggregationInfoFieldName.SUB_FIELD.toString(), "day_of_week_i");
+            }}
+        );
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.MATCH_ALL_QUERY)
+                .withAggregationInfo(aggregationInfo);
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        Terms byGenderAggregation = searchResult.getAggregations().get("by_customer_gender");
+
+        Avg averageDayOfWeekMale = byGenderAggregation.getBucketByKey("MALE")
+                .getAggregations()
+                .get("average_day_of_week_i");
+
+        Avg averageDayOfWeekFemale = byGenderAggregation.getBucketByKey("FEMALE")
+                .getAggregations()
+                .get("average_day_of_week_i");
+
+        assertEquals(1, searchResult.getAggregations().asList().size());
+        assertEquals(3.16, averageDayOfWeekMale.getValue(), 0.01);
+        assertEquals(3.07, averageDayOfWeekFemale.getValue(), 0.01);
     }
 
 }

@@ -1,9 +1,7 @@
 package it.flowing.complex.service;
 
 import com.google.common.base.Preconditions;
-import it.flowing.complex.model.HighlightFieldType;
-import it.flowing.complex.model.QueryData;
-import it.flowing.complex.model.SearchResult;
+import it.flowing.complex.model.*;
 import lombok.NoArgsConstructor;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.search.SearchRequest;
@@ -12,6 +10,8 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
@@ -95,6 +95,18 @@ public class ElasticService {
             }
             highlightBuilder.field(field);
             searchSourceBuilder.highlighter(highlightBuilder);
+        }
+
+        for(Map<String, Object> aggregation : queryData.getAggregationInfo()) {
+            TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(aggregation.get(AggregationInfoFieldName.TERM.toString()).toString())
+                    .field(aggregation.get(AggregationInfoFieldName.FIELD.toString()).toString());
+            switch ((AggregationType)aggregation.get(AggregationInfoFieldName.AGGREGATION_TYPE.toString())) {
+                case AVG:
+                    termsAggregationBuilder.subAggregation(AggregationBuilders.avg(aggregation.get(AggregationInfoFieldName.SUB_NAME.toString()).toString())
+                            .field(aggregation.get(AggregationInfoFieldName.SUB_FIELD.toString()).toString()));
+                    break;
+            }
+            searchSourceBuilder.aggregation(termsAggregationBuilder);
         }
 
         searchRequest.indices(serverConfiguration.getSearchIndex());
