@@ -14,7 +14,6 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.search.sort.SortBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -67,6 +66,31 @@ public class ElasticService {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(QueryBuilders.matchAllQuery());
 
+        addPagination(queryData, searchSourceBuilder);
+
+        if (queryData.getTimeout().isPresent()) {
+            searchSourceBuilder.timeout(queryData.getTimeout().get());
+        }
+
+        queryData.getSortingCriteria().forEach(searchSourceBuilder::sort);
+
+        if (queryData.getExcludeFields().isPresent() && queryData.getIncludeFields().isPresent()) {
+            searchSourceBuilder.fetchSource(queryData.getIncludeFields().get(), queryData.getExcludeFields().get());
+        }
+
+        addHighlightFields(queryData, searchSourceBuilder);
+
+        addAggregations(queryData, searchSourceBuilder);
+
+        searchRequest.indices(serverConfiguration.getSearchIndex());
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+
+        return SearchResult.fromSearchResponse(searchResponse);
+    }
+
+    private void addPagination(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
         if (queryData.getFrom().isPresent()) {
             searchSourceBuilder.from(queryData.getFrom().get());
         }
@@ -74,29 +98,9 @@ public class ElasticService {
         if (queryData.getSize().isPresent()) {
             searchSourceBuilder.size(queryData.getSize().get());
         }
+    }
 
-        if (queryData.getTimeout().isPresent()) {
-            searchSourceBuilder.timeout(queryData.getTimeout().get());
-        }
-
-        for (SortBuilder sortBuilder : queryData.getSortingCriteria()) {
-            searchSourceBuilder.sort(sortBuilder);
-        }
-
-        if (queryData.getExcludeFields().isPresent() && queryData.getIncludeFields().isPresent()) {
-            searchSourceBuilder.fetchSource(queryData.getIncludeFields().get(), queryData.getExcludeFields().get());
-        }
-
-        for(Map<String, Object> highlightField : queryData.getHighlightFields()) {
-            HighlightBuilder highlightBuilder = new HighlightBuilder();
-            HighlightBuilder.Field field = new HighlightBuilder.Field(highlightField.get(HighlightFieldType.NAME.toString()).toString());
-            if (highlightField.containsKey(HighlightFieldType.TYPE.toString())) {
-                field.highlighterType(highlightField.get(HighlightFieldType.TYPE.toString()).toString());
-            }
-            highlightBuilder.field(field);
-            searchSourceBuilder.highlighter(highlightBuilder);
-        }
-
+    private void addAggregations(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
         for(Map<String, Object> aggregation : queryData.getAggregationInfo()) {
             TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(aggregation.get(AggregationInfoFieldName.TERM.toString()).toString())
                     .field(aggregation.get(AggregationInfoFieldName.FIELD.toString()).toString());
@@ -108,11 +112,18 @@ public class ElasticService {
             }
             searchSourceBuilder.aggregation(termsAggregationBuilder);
         }
+    }
 
-        searchRequest.indices(serverConfiguration.getSearchIndex());
-        searchRequest.source(searchSourceBuilder);
-        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        return SearchResult.fromSearchResponse(searchResponse);
+    private void addHighlightFields(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
+        for (Map<String, Object> highlightField : queryData.getHighlightFields()) {
+            HighlightBuilder highlightBuilder = new HighlightBuilder();
+            HighlightBuilder.Field field = new HighlightBuilder.Field(highlightField.get(HighlightFieldType.NAME.toString()).toString());
+            if (highlightField.containsKey(HighlightFieldType.TYPE.toString())) {
+                field.highlighterType(highlightField.get(HighlightFieldType.TYPE.toString()).toString());
+            }
+            highlightBuilder.field(field);
+            searchSourceBuilder.highlighter(highlightBuilder);
+        }
     }
 
     private void checkSearchPreconditions(QueryData queryData) {
