@@ -57,18 +57,19 @@ public class ElasticService {
     public SearchResult search(QueryData queryData) throws IOException {
         checkSearchPreconditions(queryData);
 
-        switch (queryData.getSearchType()) {
-            case MATCH_ALL_QUERY:
-                return searchMatchAllQuery(queryData);
-        }
-
-        return null;
-    }
-
-    private SearchResult searchMatchAllQuery(QueryData queryData) throws IOException {
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+
+        switch (queryData.getSearchType()) {
+            case MATCH_ALL_QUERY:
+                searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+                break;
+            case TERM_QUERY:
+                searchSourceBuilder.query(QueryBuilders.termQuery(queryData.getTermName(), queryData.getTermValue()));
+                break;
+            case TERMS_QUERY:
+                searchSourceBuilder.query(QueryBuilders.termsQuery(queryData.getTermName(), queryData.getTermValues().toArray()));
+        }
 
         addPagination(queryData, searchSourceBuilder);
 
@@ -149,6 +150,17 @@ public class ElasticService {
 
     private void checkSearchPreconditions(QueryData queryData) {
         Preconditions.checkNotNull(queryData);
+
+        switch (queryData.getSearchType()) {
+            case TERM_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                Preconditions.checkNotNull(queryData.getTermValue());
+                break;
+            case TERMS_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                Preconditions.checkArgument(queryData.getTermValues().size() > 0);
+                break;
+        }
     }
 
 }

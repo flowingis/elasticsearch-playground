@@ -229,4 +229,33 @@ public class ElasticServiceTest {
         assertEquals("EUR", searchResult.getSuggest().getSuggestion("suggest_currency").getEntries().get(0).getText().string());
     }
 
+    @Test
+    public void SearchTermQueryShouldReturnTheRightResult() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.TERM_QUERY)
+                .withTermName("customer_first_name.keyword")
+                .withTermValue("Diane");
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(111L, searchResult.getNumHits());
+    }
+
+    @Test
+    public void SearchTermsQueryShouldReturnTheRightResult() throws Exception {
+        List<Object> termValues = new ArrayList<Object>() {{
+                add("Diane");
+                add("Gwen");
+        }};
+
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.TERMS_QUERY)
+                .withTermName("customer_first_name.keyword")
+                .withTermValues(termValues);
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(233L, searchResult.getNumHits());
+    }
+
 }

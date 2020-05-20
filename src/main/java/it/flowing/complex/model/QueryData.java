@@ -28,4 +28,7 @@ public class QueryData {
     private List<Map<String, Object>> highlightFields = new ArrayList<>();
     private List<Map<String, Object>> aggregationInfo = new ArrayList<>();
     private List<Pair<String, String>> suggestions = new ArrayList<>();
+    private String termName = "";
+    private Object termValue = null;
+    private List<Object> termValues = new ArrayList<>();
 }
