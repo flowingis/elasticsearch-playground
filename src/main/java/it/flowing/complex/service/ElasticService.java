@@ -5,11 +5,13 @@ import it.flowing.complex.model.*;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHost;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -92,6 +94,13 @@ public class ElasticService {
                 }
                 searchSourceBuilder.query(rangeQueryBuilder);
                 break;
+            case NESTED_QUERY:
+                NestedQueryBuilder nestedQueryBuilder = QueryBuilders
+                        .nestedQuery(
+                                queryData.getTermName(),
+                                QueryBuilders.termQuery(queryData.getSubTermName(),queryData.getSubTermValue()), ScoreMode.None);
+                searchSourceBuilder.query(nestedQueryBuilder);
+                break;
         }
 
         addPagination(queryData, searchSourceBuilder);
@@ -112,12 +121,21 @@ public class ElasticService {
 
         addSuggestions(queryData, searchSourceBuilder);
 
-        searchRequest.indices(serverConfiguration.getSearchIndex());
+        addSearchIndex(queryData, searchRequest);
+
         searchRequest.source(searchSourceBuilder);
 
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         return SearchResult.fromSearchResponse(searchResponse);
+    }
+
+    private void addSearchIndex(QueryData queryData, SearchRequest searchRequest) {
+        if (queryData.getSearchIndex().isPresent()) {
+            searchRequest.indices(queryData.getSearchIndex().get());
+        } else {
+            searchRequest.indices(serverConfiguration.getSearchIndex());
+        }
     }
 
     private void addPagination(QueryData queryData, SearchSourceBuilder searchSourceBuilder) {
@@ -193,6 +211,11 @@ public class ElasticService {
             case RANGE_QUERY:
                 Preconditions.checkNotNull(queryData.getTermName());
                 Preconditions.checkNotNull(queryData.getRangeValues());
+                break;
+            case NESTED_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                Preconditions.checkNotNull(queryData.getSubTermName());
+                Preconditions.checkNotNull(queryData.getSubTermValue());
                 break;
         }
     }

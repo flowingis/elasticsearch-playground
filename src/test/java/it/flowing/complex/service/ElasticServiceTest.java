@@ -299,4 +299,49 @@ public class ElasticServiceTest {
         assertEquals(411L, searchResult.getNumHits());
     }
 
+    @Test
+    public void NestedQueryShouldReturnTheRightResult() throws Exception {
+        /*
+        Per eseguire il test, eseguire i seguenti comandi:
+
+        PUT nested_test
+        {
+          "mappings": {
+            "properties": {
+              "user": {
+                "type": "nested"
+              }
+            }
+          }
+        }
+
+        PUT nested_test/_doc/1
+        {
+          "group" : "fans",
+          "user" : [
+            {
+              "first" : "John",
+              "last" :  "Smith"
+            },
+            {
+              "first" : "Alice",
+              "last" :  "White"
+            }
+          ]
+        }
+
+         */
+
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.NESTED_QUERY)
+                .withTermName("user")
+                .withSubTermName("user.first.keyword")
+                .withSubTermValue("Alice")
+                .withSearchIndex(Optional.of("nested_test"));
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(1L, searchResult.getNumHits());
+    }
+
 }

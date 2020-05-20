@@ -32,4 +32,7 @@ public class QueryData {
     private Object termValue = null;
     private List<Object> termValues = new ArrayList<>();
     private Map<RangeOperator, Object> rangeValues = null;
+    private Optional<String> searchIndex = Optional.empty();
+    private String subTermName = "";
+    private Object subTermValue = null;
 }
