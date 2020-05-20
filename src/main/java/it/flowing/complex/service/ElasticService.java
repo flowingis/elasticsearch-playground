@@ -69,6 +69,13 @@ public class ElasticService {
                 break;
             case TERMS_QUERY:
                 searchSourceBuilder.query(QueryBuilders.termsQuery(queryData.getTermName(), queryData.getTermValues().toArray()));
+                break;
+            case EXISTS_QUERY:
+                searchSourceBuilder.query(QueryBuilders.existsQuery(queryData.getTermName()));
+                break;
+            case FUZZY_QUERY:
+                searchSourceBuilder.query(QueryBuilders.fuzzyQuery(queryData.getTermName(), queryData.getTermValue()));
+                break;
         }
 
         addPagination(queryData, searchSourceBuilder);
@@ -159,6 +166,13 @@ public class ElasticService {
             case TERMS_QUERY:
                 Preconditions.checkNotNull(queryData.getTermName());
                 Preconditions.checkArgument(queryData.getTermValues().size() > 0);
+                break;
+            case EXISTS_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                break;
+            case FUZZY_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                Preconditions.checkNotNull(queryData.getTermValue());
                 break;
         }
     }

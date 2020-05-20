@@ -258,4 +258,28 @@ public class ElasticServiceTest {
         assertEquals(233L, searchResult.getNumHits());
     }
 
+    @Test
+    public void ExistsQueryShouldReturnTheRightResult() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.EXISTS_QUERY)
+                .withTermName("products");
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(4675L, searchResult.getNumHits());
+    }
+
+    @Test
+    public void SearchFuzzQueryShouldReturnTheRightResultWithDifferentScore() throws Exception {
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.FUZZY_QUERY)
+                .withTermName("customer_first_name.keyword")
+                .withTermValue("Daiana");
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(111L, searchResult.getNumHits());
+        assertEquals(2.24f, searchResult.getHits().get(0).getScore(), 0.01f);
+    }
+
 }
