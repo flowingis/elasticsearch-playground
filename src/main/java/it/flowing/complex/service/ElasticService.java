@@ -2,9 +2,12 @@ package it.flowing.complex.service;
 
 import com.google.common.base.Preconditions;
 import it.flowing.complex.model.*;
+import it.flowing.raw.model.CreateDocumentResponse;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -21,6 +24,7 @@ import org.elasticsearch.search.suggest.SuggestionBuilder;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -101,6 +105,27 @@ public class ElasticService {
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 
         return SearchResult.fromSearchResponse(searchResponse);
+    }
+
+    public CreateDocumentResponse indexDocument(String indexName, byte[] content, Map<String, Object> metadata) throws IOException {
+        Preconditions.checkNotNull(indexName);
+        Preconditions.checkArgument(!indexName.isEmpty());
+        Preconditions.checkArgument(content.length > 0);
+
+        if (null == metadata) {
+            metadata = new HashMap<>();
+        }
+        metadata.put("data", Base64.getEncoder().encodeToString(content));
+
+        IndexRequest indexRequest = new IndexRequest(indexName).source(metadata);
+        indexRequest.setPipeline("attachment");
+        IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+        CreateDocumentResponse createDocumentResponse = CreateDocumentResponse.builder()
+                .status(indexResponse.status())
+                .id(indexResponse.getId())
+                .build();
+
+        return createDocumentResponse;
     }
 
     private void addSearchIndex(QueryData queryData, SearchRequest searchRequest) {

@@ -1,6 +1,8 @@
 package it.flowing.complex.service;
 
+import com.google.common.io.ByteStreams;
 import it.flowing.complex.model.*;
+import it.flowing.raw.model.CreateDocumentResponse;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.TotalHits;
@@ -23,6 +25,7 @@ import org.junit.runner.RunWith;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -311,6 +314,23 @@ public class ElasticServiceTest {
         SearchResult searchResult = elasticService.search(queryData);
 
         assertEquals(1L, searchResult.getNumHits());
+    }
+
+    @Test
+    public void IndexDocumentWithAttachmentShouldUseIngestAttachmentPlugin() throws IOException {
+        InputStream is = getClass().getResourceAsStream("/test.pdf");
+        Map<String, Object> metadata = new HashMap<String, Object>() {{
+            put("nome", "Anna");
+            put("cognome", "Verdi");
+            put("indirizzo", "via venezia 123, Loreto(AN)");
+        }};
+
+        CreateDocumentResponse response = elasticService.indexDocument("attachment_demo",
+                ByteStreams.toByteArray(is),
+                metadata);
+
+        assertNotNull(response);
+        assertEquals(RestStatus.CREATED, response.getStatus());
     }
 
 }
