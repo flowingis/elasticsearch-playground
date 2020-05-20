@@ -5,15 +5,11 @@ import it.flowing.complex.model.*;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHost;
-import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.NestedQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -25,16 +21,30 @@ import org.elasticsearch.search.suggest.SuggestionBuilder;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @ApplicationScoped
 @NoArgsConstructor
 public class ElasticService {
 
+    public static final String SUGGEST_PREFIX = "suggest_";
     @Inject
     private ServerConfiguration serverConfiguration;
 
     private RestHighLevelClient client;
+
+    private static Map<SearchType, Searcher> searcherMap = new HashMap<SearchType, Searcher>() {{
+        put(SearchType.MATCH_ALL_QUERY, new MatchAllSearcher());
+        put(SearchType.TERM_QUERY, new TermSearcher());
+        put(SearchType.TERMS_QUERY, new TermsSearcher());
+        put(SearchType.EXISTS_QUERY, new ExistsSearcher());
+        put(SearchType.FUZZ_QUERY, new FuzzSearcher());
+        put(SearchType.RANGE_QUERY, new RangeSearcher());
+        put(SearchType.NESTED_QUERY, new NestedSearcher());
+    }};
+
+    private Searcher searcher;
 
     @Inject
     public ElasticService(ServerConfiguration serverConfiguration) {
@@ -58,50 +68,13 @@ public class ElasticService {
     }
 
     public SearchResult search(QueryData queryData) throws IOException {
+        searcher = getSearcher(queryData);
+
         checkSearchPreconditions(queryData);
 
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
-        switch (queryData.getSearchType()) {
-            case MATCH_ALL_QUERY:
-                searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-                break;
-            case TERM_QUERY:
-                searchSourceBuilder.query(QueryBuilders.termQuery(queryData.getTermName(), queryData.getTermValue()));
-                break;
-            case TERMS_QUERY:
-                searchSourceBuilder.query(QueryBuilders.termsQuery(queryData.getTermName(), queryData.getTermValues().toArray()));
-                break;
-            case EXISTS_QUERY:
-                searchSourceBuilder.query(QueryBuilders.existsQuery(queryData.getTermName()));
-                break;
-            case FUZZY_QUERY:
-                searchSourceBuilder.query(QueryBuilders.fuzzyQuery(queryData.getTermName(), queryData.getTermValue()));
-                break;
-            case RANGE_QUERY:
-                RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery(queryData.getTermName());
-                for (Map.Entry<RangeOperator, Object> rangeValue : queryData.getRangeValues().entrySet()) {
-                    if (rangeValue.getKey().equals(RangeOperator.GT)) {
-                        rangeQueryBuilder.gt(rangeValue.getValue());
-                    } else if (rangeValue.getKey().equals(RangeOperator.GTE)) {
-                        rangeQueryBuilder.gte(rangeValue.getValue());
-                    } else if (rangeValue.getKey().equals(RangeOperator.LT)) {
-                        rangeQueryBuilder.lt(rangeValue.getValue());
-                    } else if (rangeValue.getKey().equals(RangeOperator.LTE)) {
-                        rangeQueryBuilder.lte(rangeValue.getValue());
-                    }
-                }
-                searchSourceBuilder.query(rangeQueryBuilder);
-                break;
-            case NESTED_QUERY:
-                NestedQueryBuilder nestedQueryBuilder = QueryBuilders
-                        .nestedQuery(
-                                queryData.getTermName(),
-                                QueryBuilders.termQuery(queryData.getSubTermName(),queryData.getSubTermValue()), ScoreMode.None);
-                searchSourceBuilder.query(nestedQueryBuilder);
-                break;
-        }
+        searchSourceBuilder.query(searcher.getQueryBuilder(queryData));
 
         addPagination(queryData, searchSourceBuilder);
 
@@ -171,7 +144,7 @@ public class ElasticService {
                     .termSuggestion(suggestion.getLeft())
                     .text(suggestion.getRight());
 
-            suggestBuilder.addSuggestion("suggest_" + suggestion.getLeft(), termSuggestionBuilder);
+            suggestBuilder.addSuggestion(SUGGEST_PREFIX + suggestion.getLeft(), termSuggestionBuilder);
         }
 
         searchSourceBuilder.suggest(suggestBuilder);
@@ -192,32 +165,13 @@ public class ElasticService {
     private void checkSearchPreconditions(QueryData queryData) {
         Preconditions.checkNotNull(queryData);
 
-        switch (queryData.getSearchType()) {
-            case TERM_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                Preconditions.checkNotNull(queryData.getTermValue());
-                break;
-            case TERMS_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                Preconditions.checkArgument(queryData.getTermValues().size() > 0);
-                break;
-            case EXISTS_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                break;
-            case FUZZY_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                Preconditions.checkNotNull(queryData.getTermValue());
-                break;
-            case RANGE_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                Preconditions.checkNotNull(queryData.getRangeValues());
-                break;
-            case NESTED_QUERY:
-                Preconditions.checkNotNull(queryData.getTermName());
-                Preconditions.checkNotNull(queryData.getSubTermName());
-                Preconditions.checkNotNull(queryData.getSubTermValue());
-                break;
-        }
+        searcher.checkPreconditions(queryData);
+    }
+
+    private Searcher getSearcher(QueryData queryData) {
+        Preconditions.checkArgument(searcherMap.containsKey(queryData.getSearchType()));
+
+        return searcherMap.get(queryData.getSearchType());
     }
 
 }

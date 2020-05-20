@@ -272,7 +272,7 @@ public class ElasticServiceTest {
     @Test
     public void SearchFuzzQueryShouldReturnTheRightResultWithDifferentScore() throws Exception {
         QueryData queryData = (new QueryData())
-                .withSearchType(SearchType.FUZZY_QUERY)
+                .withSearchType(SearchType.FUZZ_QUERY)
                 .withTermName("customer_first_name.keyword")
                 .withTermValue("Daiana");
 
