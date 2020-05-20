@@ -282,4 +282,21 @@ public class ElasticServiceTest {
         assertEquals(2.24f, searchResult.getHits().get(0).getScore(), 0.01f);
     }
 
+    @Test
+    public void RangeQueryShouldReturnTheRightResult() throws Exception {
+        Map<RangeOperator, Object> rangeValues = new HashMap<RangeOperator, Object>() {{
+            put(RangeOperator.GT, 3);
+            put(RangeOperator.LT, 5);
+        }};
+
+        QueryData queryData = (new QueryData())
+                .withSearchType(SearchType.RANGE_QUERY)
+                .withTermName("total_quantity")
+                .withRangeValues(rangeValues);
+
+        SearchResult searchResult = elasticService.search(queryData);
+
+        assertEquals(411L, searchResult.getNumHits());
+    }
+
 }

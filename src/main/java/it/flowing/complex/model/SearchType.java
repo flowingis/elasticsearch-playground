@@ -5,5 +5,6 @@ public enum SearchType {
     TERM_QUERY,
     TERMS_QUERY,
     EXISTS_QUERY,
-    FUZZY_QUERY
+    FUZZY_QUERY,
+    RANGE_QUERY
 }

@@ -11,6 +11,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -75,6 +76,21 @@ public class ElasticService {
                 break;
             case FUZZY_QUERY:
                 searchSourceBuilder.query(QueryBuilders.fuzzyQuery(queryData.getTermName(), queryData.getTermValue()));
+                break;
+            case RANGE_QUERY:
+                RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery(queryData.getTermName());
+                for (Map.Entry<RangeOperator, Object> rangeValue : queryData.getRangeValues().entrySet()) {
+                    if (rangeValue.getKey().equals(RangeOperator.GT)) {
+                        rangeQueryBuilder.gt(rangeValue.getValue());
+                    } else if (rangeValue.getKey().equals(RangeOperator.GTE)) {
+                        rangeQueryBuilder.gte(rangeValue.getValue());
+                    } else if (rangeValue.getKey().equals(RangeOperator.LT)) {
+                        rangeQueryBuilder.lt(rangeValue.getValue());
+                    } else if (rangeValue.getKey().equals(RangeOperator.LTE)) {
+                        rangeQueryBuilder.lte(rangeValue.getValue());
+                    }
+                }
+                searchSourceBuilder.query(rangeQueryBuilder);
                 break;
         }
 
@@ -173,6 +189,10 @@ public class ElasticService {
             case FUZZY_QUERY:
                 Preconditions.checkNotNull(queryData.getTermName());
                 Preconditions.checkNotNull(queryData.getTermValue());
+                break;
+            case RANGE_QUERY:
+                Preconditions.checkNotNull(queryData.getTermName());
+                Preconditions.checkNotNull(queryData.getRangeValues());
                 break;
         }
     }

@@ -31,4 +31,5 @@ public class QueryData {
     private String termName = "";
     private Object termValue = null;
     private List<Object> termValues = new ArrayList<>();
+    private Map<RangeOperator, Object> rangeValues = null;
 }
