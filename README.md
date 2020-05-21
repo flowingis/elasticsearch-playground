@@ -29,6 +29,30 @@
             }
           ]
         }
+
+* Per effettuare l'indicizzazione con la pipeline **ingest-attachment**:
+
+        PUT _ingest/pipeline/attachment
+        {
+          "description" : "Extract attachment information",
+          "processors" : [
+            {
+              "attachment" : {
+                "field" : "data"
+              }
+            },
+            {
+              "remove": {
+                "field": "data"
+              }
+            }
+          ]
+        }
+
+
+* Per vedere se la pipeline ingest-attachment è installata (nella risposta deve essere presente la chiave **attachment**):
+
+        GET /_ingest/pipeline
         
 #### Bootstrap (ElasticSearch + Kibana)
 * make start
