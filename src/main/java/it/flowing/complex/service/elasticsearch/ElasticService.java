@@ -1,7 +1,9 @@
-package it.flowing.complex.service;
+package it.flowing.complex.service.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import it.flowing.complex.model.*;
+import it.flowing.complex.service.configuration.ServerConfiguration;
+import it.flowing.complex.service.searcher.*;
 import it.flowing.raw.model.CreateDocumentResponse;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;

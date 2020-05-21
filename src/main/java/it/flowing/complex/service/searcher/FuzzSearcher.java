@@ -1,11 +1,11 @@
-package it.flowing.complex.service;
+package it.flowing.complex.service.searcher;
 
 import com.google.common.base.Preconditions;
 import it.flowing.complex.model.QueryData;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 
-public class TermSearcher implements Searcher {
+public class FuzzSearcher implements Searcher {
 
     @Override
     public void checkPreconditions(QueryData queryData) {
@@ -15,6 +15,6 @@ public class TermSearcher implements Searcher {
 
     @Override
     public QueryBuilder getQueryBuilder(QueryData queryData) {
-        return QueryBuilders.termQuery(queryData.getTermName(), queryData.getTermValue());
+        return QueryBuilders.fuzzyQuery(queryData.getTermName(), queryData.getTermValue());
     }
 }

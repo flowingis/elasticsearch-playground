@@ -1,4 +1,4 @@
-package it.flowing.complex.service;
+package it.flowing.complex.service.configuration;
 
 import lombok.Data;
 

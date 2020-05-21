@@ -1,4 +1,4 @@
-package it.flowing.complex.service;
+package it.flowing.complex.service.elasticsearch;
 
 import com.google.common.io.ByteStreams;
 import it.flowing.complex.model.*;
@@ -41,7 +41,9 @@ public class ElasticServiceTest {
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class)
                 .addPackages(false,
-                        "it.flowing.complex.service",
+                        "it.flowing.complex.service.configuration",
+                        "it.flowing.complex.service.elasticsearch",
+                        "it.flowing.complex.service.searcher",
                         "it.flowing.complex.model")
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }
