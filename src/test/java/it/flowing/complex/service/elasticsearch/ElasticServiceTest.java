@@ -1,8 +1,8 @@
 package it.flowing.complex.service.elasticsearch;
 
+import com.github.javafaker.Faker;
 import com.google.common.io.ByteStreams;
 import it.flowing.complex.model.*;
-import it.flowing.raw.model.CreateDocumentResponse;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.TotalHits;
@@ -34,6 +34,14 @@ import static org.junit.Assert.*;
 @RunWith(Arquillian.class)
 public class ElasticServiceTest {
 
+    private static final String UUID_GET_DOCUMENT_TEST = "a4135c2b-455f-4832-b59e-8938239a5424";
+    private static final String UUID_DELETE_DOCUMENT_TEST = "231113d2-3f11-48bd-a314-4d6223694bf6";
+    private static final String INDEX_NAME_TEST = "javatest";
+    private static final String INDEX_NAME_DELETE_TEST = "javatestdelete";
+    private static final String WRONG_VALUE = "asdf1234";
+
+    private static boolean setUpIsDone = false;
+
     @Inject
     private ElasticService elasticService;
 
@@ -51,6 +59,42 @@ public class ElasticServiceTest {
     @Before
     public void before() {
         elasticService.openConnection();
+
+        if (setUpIsDone) {
+            return;
+        }
+
+        try {
+            elasticService.deleteIndex(INDEX_NAME_TEST, Optional.empty());
+            popolateIndexWithFakeData();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        setUpIsDone = true;
+    }
+
+    private void popolateIndexWithFakeData() throws IOException {
+        elasticService.createDocument(INDEX_NAME_TEST,
+                getDummyDataForCreateDocument(),
+                Optional.of(UUID_GET_DOCUMENT_TEST));
+
+        elasticService.createDocument(INDEX_NAME_TEST,
+                getDummyDataForCreateDocument(),
+                Optional.of(UUID_DELETE_DOCUMENT_TEST));
+
+        elasticService.createDocument(INDEX_NAME_DELETE_TEST,
+                getDummyDataForCreateDocument(),
+                Optional.of(UUID_DELETE_DOCUMENT_TEST));
+    }
+
+    private Map<String, Object> getDummyDataForCreateDocument() {
+        Faker faker = new Faker();
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("nome", faker.name().firstName());
+        metadata.put("cognome", faker.name().lastName());
+        return metadata;
     }
 
     @After
@@ -333,6 +377,257 @@ public class ElasticServiceTest {
 
         assertNotNull(response);
         assertEquals(RestStatus.CREATED, response.getStatus());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void DeleteIndexShouldThrowErrorIfNullIndexProvided() throws Exception {
+        elasticService.deleteIndex(null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteIndexShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        elasticService.deleteIndex("", Optional.empty());
+    }
+
+    @Test
+    public void DeleteIndexShouldReturnTrueIfIndexExists() throws Exception {
+        assertTrue(elasticService.deleteIndex(INDEX_NAME_DELETE_TEST, Optional.empty()));
+    }
+
+    @Test
+    public void DeleteIndexShouldReturnFalseIfIndexNotExists() throws Exception {
+        assertFalse(elasticService.deleteIndex(WRONG_VALUE, Optional.empty()));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void CreateDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        elasticService.createDocument(null, null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void CreateDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        elasticService.createDocument("", null, Optional.empty());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void CreateDocumentShouldThrowErrorIfNullMetadataProvided() throws Exception {
+        elasticService.createDocument("dummyIndex", null, Optional.empty());
+    }
+
+    @Test
+    public void CreateDocumentShouldReturnAValidIndexRequestObject() throws Exception {
+        Map<String, Object> metadata = getDummyDataForCreateDocument();
+        CreateDocumentResponse response = null;
+        response = elasticService.createDocument(INDEX_NAME_TEST, metadata, Optional.empty());
+
+        assertNotNull(response);
+        assertEquals(RestStatus.CREATED, response.getStatus());
+    }
+
+    @Test
+    public void CreateDocumentShouldReturnTheIdProvided() throws Exception {
+        Map<String, Object> metadata = getDummyDataForCreateDocument();
+        CreateDocumentResponse response = null;
+        String uuid = UUID.randomUUID().toString();
+        response = elasticService.createDocument(INDEX_NAME_TEST, metadata, Optional.of(uuid));
+
+        assertNotNull(response);
+        assertEquals(RestStatus.CREATED, response.getStatus());
+        assertEquals(uuid, response.getId());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void GetDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        Document document = elasticService.getDocument(null, UUID_GET_DOCUMENT_TEST, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void GetDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        Document document = elasticService.getDocument("", UUID_GET_DOCUMENT_TEST, Optional.empty());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void GetDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        Document document = elasticService.getDocument(INDEX_NAME_TEST, null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void GetDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        Document document = elasticService.getDocument(INDEX_NAME_TEST, "", Optional.empty());
+    }
+
+    @Test
+    public void GetDocumentWithExistingIdShouldReturnAValidDocumentWithMetadata() throws Exception {
+        Document document = elasticService.getDocument(
+                INDEX_NAME_TEST,
+                UUID_GET_DOCUMENT_TEST,
+                Optional.empty());
+
+        assertNotNull(document);
+    }
+
+    @Test
+    public void GetDocumentWithNonExistingShouldReturnNullDocument() throws Exception {
+        Document document = elasticService.getDocument(
+                INDEX_NAME_TEST,
+                WRONG_VALUE,
+                Optional.empty());
+
+        assertNull(document);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void ExistsDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        boolean exists = elasticService.existsDocument(null, UUID_GET_DOCUMENT_TEST);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void ExistsDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        boolean exists = elasticService.existsDocument("", UUID_GET_DOCUMENT_TEST);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void ExistsDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        boolean exists = elasticService.existsDocument(INDEX_NAME_TEST, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void ExistsDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        boolean exists = elasticService.existsDocument(INDEX_NAME_TEST, "");
+    }
+
+    @Test
+    public void ExistsDocumentWithExistingIdShouldReturnTrue() throws Exception {
+        boolean exists = elasticService.existsDocument(
+                INDEX_NAME_TEST,
+                UUID_GET_DOCUMENT_TEST);
+        assertTrue(exists);
+    }
+
+    @Test
+    public void ExistsDocumentWithNonExistingIdShouldReturnFalse() throws Exception {
+        boolean exists = elasticService.existsDocument(
+                INDEX_NAME_TEST,
+                WRONG_VALUE);
+        assertFalse(exists);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument(null,
+                UUID_GET_DOCUMENT_TEST,
+                null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void UpdateDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument("",
+                UUID_GET_DOCUMENT_TEST,
+                null, Optional.empty());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument(INDEX_NAME_TEST,
+                null,
+                null, Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void UpdateDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument(INDEX_NAME_TEST,
+                "",
+                null, Optional.empty());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void UpdateDocumentShouldThrowErrorIfNullMetadataProvided() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument(INDEX_NAME_TEST,
+                UUID_GET_DOCUMENT_TEST,
+                null, Optional.empty());
+    }
+
+    @Test
+    public void UpdateDocumentShouldChangeMetadataNome() throws Exception {
+        UpdateDocumentResponse updateDocumentResponse = null;
+        String newName = "Giulio";
+
+        Map<String, Object> metadataToUpdate = new HashMap<>();
+        metadataToUpdate.put("nome", newName);
+        updateDocumentResponse = elasticService.updateDocument(INDEX_NAME_TEST,
+                UUID_GET_DOCUMENT_TEST,
+                metadataToUpdate,
+                Optional.empty());
+
+        Document document = elasticService.getDocument(INDEX_NAME_TEST,
+                UUID_GET_DOCUMENT_TEST,
+                Optional.empty());
+
+        assertNotNull(updateDocumentResponse);
+        assertEquals(newName, document.getSource().get("nome"));
+    }
+
+    @Test
+    public void UpdateDocumentWithIdNotFoundShouldReturnNull() throws Exception {
+        Map<String, Object> metadataToUpdate = new HashMap<>();
+        metadataToUpdate.put("nome", "Giulio");
+        UpdateDocumentResponse updateDocumentResponse = elasticService.updateDocument(INDEX_NAME_TEST,
+                WRONG_VALUE,
+                metadataToUpdate,
+                Optional.empty());
+
+        assertNull(updateDocumentResponse);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void DeleteDocumentShouldThrowErrorIfNullIndexProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument(null,
+                UUID_DELETE_DOCUMENT_TEST,
+                Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteDocumentShouldThrowErrorIfEmptyIndexProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument("",
+                UUID_DELETE_DOCUMENT_TEST,
+                Optional.empty());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void DeleteDocumentShouldThrowErrorIfNullIdProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument(INDEX_NAME_TEST,
+                null,
+                Optional.empty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void DeleteDocumentShouldThrowErrorIfEmptyIdProvided() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument(INDEX_NAME_TEST,
+                "",
+                Optional.empty());
+    }
+
+    @Test
+    public void DeleteDocumentWithValidIdShouldRemoveDocumentFromIndex() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument(INDEX_NAME_TEST,
+                UUID_DELETE_DOCUMENT_TEST,
+                Optional.empty());
+
+        Document document = elasticService.getDocument(INDEX_NAME_TEST,
+                UUID_DELETE_DOCUMENT_TEST,
+                Optional.empty());
+
+        assertNotNull(deleteDocumentResponse);
+        assertNull(document);
+    }
+
+    @Test
+    public void DeleteDocumentWithNonExistingIdShouldReturnNull() throws Exception {
+        DeleteDocumentResponse deleteDocumentResponse = elasticService.deleteDocument(INDEX_NAME_TEST,
+                WRONG_VALUE,
+                Optional.empty());
+
+        assertNull(deleteDocumentResponse);
     }
 
 }
