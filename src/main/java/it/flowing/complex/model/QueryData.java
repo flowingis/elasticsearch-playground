@@ -35,4 +35,5 @@ public class QueryData {
     private Optional<String> searchIndex = Optional.empty();
     private String subTermName = "";
     private Object subTermValue = null;
+    private Map<String, Map<String, Object>> boolQueryRules = null;
 }

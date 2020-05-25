@@ -61,6 +61,7 @@ public class ElasticService {
         put(SearchType.FUZZ_QUERY, new FuzzSearcher());
         put(SearchType.RANGE_QUERY, new RangeSearcher());
         put(SearchType.NESTED_QUERY, new NestedSearcher());
+        put(SearchType.BOOL_QUERY, new BoolSearcher());
     }};
 
     private Searcher searcher;
